@@ -4,5 +4,6 @@ module com.gbroche.archiver {
 
 
     opens com.gbroche.archiver to javafx.fxml;
+    opens com.gbroche.archiver.controllers to javafx.fxml;
     exports com.gbroche.archiver;
 }
