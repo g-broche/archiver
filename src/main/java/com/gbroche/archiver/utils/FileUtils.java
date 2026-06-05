@@ -24,4 +24,13 @@ public class FileUtils {
         Path parentPath = candidateParent.toPath().toAbsolutePath().normalize();
         return directParent.equals(parentPath);
     }
+
+
+    static public boolean doesDirectoryEndWithSegment(File fullDirectory, String endSegment){
+        return fullDirectory.toPath()
+                .normalize()
+                .getFileName()
+                .toString()
+                .equals(endSegment);
+    }
 }

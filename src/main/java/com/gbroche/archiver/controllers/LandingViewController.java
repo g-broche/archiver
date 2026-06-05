@@ -28,7 +28,7 @@ public class LandingViewController {
     private TextField archivePasswordField;
 
     private Stage stage;
-    private boolean mustIncludeExtractionSubDir = true;
+    private boolean mustIncludeExtractionSubDir;
     private File selectedArchive;
     private File extractionDirectory;
 
@@ -36,6 +36,7 @@ public class LandingViewController {
     public void initialize() {
         extractButton.setDisable(true);
         addSubDirCheckbox.setSelected(true);
+        mustIncludeExtractionSubDir = true;
 
         extractionPathField.textProperty().addListener((observable, oldValue, newValue) -> {
             try {
@@ -98,6 +99,8 @@ public class LandingViewController {
     @FXML
     private void toggleExtractionSubDir(){
         mustIncludeExtractionSubDir = addSubDirCheckbox.isSelected();
+        String message = mustIncludeExtractionSubDir ? "including sub dir is true" : "including sub dir is false";
+        System.out.println(message);
         appendSubDirIfRequired();
     }
 
@@ -120,6 +123,20 @@ public class LandingViewController {
         String currentSelectedExtractionDir = extractionDirectory.getAbsolutePath();
         String archiveName = FileUtils.getFileNameWithoutExtension(selectedArchive);
         extractionDirectory = new File(currentSelectedExtractionDir, archiveName);
+    }
+
+
+    private void removeExtractionSubDir(){
+        if (selectedArchive == null || extractionDirectory == null) {
+            return;
+        }
+        boolean isArchiveInsideExtractionDirectory = FileUtils.isDirectoryDirectParentOfFile(extractionDirectory, selectedArchive);
+        if (isArchiveInsideExtractionDirectory){
+            extractionDirectory = selectedArchive.getParentFile();
+            return;
+        }
+
+        // if (extractionDirectory)
     }
 
     private void appendSubDirIfRequired(){
