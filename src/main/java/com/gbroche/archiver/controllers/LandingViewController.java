@@ -1,6 +1,7 @@
 package com.gbroche.archiver.controllers;
 
 import com.gbroche.archiver.utils.FileUtils;
+import com.gbroche.archiver.utils.Logger;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.DirectoryChooser;
@@ -38,6 +39,7 @@ public class LandingViewController {
         addSubDirCheckbox.setSelected(true);
         mustIncludeExtractionSubDir = true;
 
+        //maybe uncheck sub dir checkbox there to keep things sync ?
         extractionPathField.textProperty().addListener((observable, oldValue, newValue) -> {
             try {
                 Path path = Path.of(newValue).toAbsolutePath().normalize();
@@ -69,38 +71,34 @@ public class LandingViewController {
             extractionDirectory = mustIncludeExtractionSubDir
                 ? new File(selectedArchive.getParentFile(), FileUtils.getFileNameWithoutExtension(selectedArchive))
                 : selectedArchive.getParentFile();
-            extractionPathField.setText(extractionDirectory.getAbsolutePath());
-
+            updateExtractionDirectoryLabel();
             extractButton.setDisable(false);
-        } else {
-            System.out.println("no file selected");
+            return;
+        }
+
+        if (selectedArchive == null){
+            extractButton.setDisable(true);
         }
     }
 
     @FXML
     private void selectDestinationOfExtraction(){
-        DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle("Select directory to extract to");
-        if (extractionDirectory != null) {
-            directoryChooser.setInitialDirectory(extractionDirectory);
-        }
+        DirectoryChooser directoryChooser = prepareDirectoryChooser();
         File dir = directoryChooser.showDialog(stage);
         if (dir != null) {
             extractionDirectory = dir;
             extractionPathField.setText(extractionDirectory.getAbsolutePath());
             extractButton.setDisable(false);
-            System.out.println("extraction path: "+extractionDirectory.getAbsolutePath());
-
-        } else {
-            System.out.println("no extraction directory selected");
+            return;
+        }
+        if (extractionDirectory.getAbsolutePath().isEmpty()){
+            extractButton.setDisable(true);
         }
     }
 
     @FXML
     private void toggleExtractionSubDir(){
         mustIncludeExtractionSubDir = addSubDirCheckbox.isSelected();
-        String message = mustIncludeExtractionSubDir ? "including sub dir is true" : "including sub dir is false";
-        System.out.println(message);
         appendSubDirIfRequired();
     }
 
@@ -118,11 +116,13 @@ public class LandingViewController {
             File parentFile = selectedArchive.getParentFile();
             String archiveName = FileUtils.getFileNameWithoutExtension(selectedArchive);
             extractionDirectory = new File(parentFile, archiveName);
+            updateExtractionDirectoryLabel();
             return;
         }
         String currentSelectedExtractionDir = extractionDirectory.getAbsolutePath();
         String archiveName = FileUtils.getFileNameWithoutExtension(selectedArchive);
         extractionDirectory = new File(currentSelectedExtractionDir, archiveName);
+        updateExtractionDirectoryLabel();
     }
 
 
@@ -130,21 +130,45 @@ public class LandingViewController {
         if (selectedArchive == null || extractionDirectory == null) {
             return;
         }
-        boolean isArchiveInsideExtractionDirectory = FileUtils.isDirectoryDirectParentOfFile(extractionDirectory, selectedArchive);
-        if (isArchiveInsideExtractionDirectory){
-            extractionDirectory = selectedArchive.getParentFile();
-            return;
+        String archiveName = FileUtils.getFileNameWithoutExtension(selectedArchive);
+        boolean isExtractionDirectoryEndingWithFileName = FileUtils.doesDirectoryEndWithSegment(extractionDirectory, archiveName);
+        if (isExtractionDirectoryEndingWithFileName){
+            extractionDirectory = extractionDirectory.getParentFile();
+            updateExtractionDirectoryLabel();
         }
-
-        // if (extractionDirectory)
     }
 
     private void appendSubDirIfRequired(){
         if (mustIncludeExtractionSubDir){
             addExtractionSubDir();
         } else {
-            new Alert(Alert.AlertType.INFORMATION, "Must implement removal of archive name").showAndWait();
+            removeExtractionSubDir();
         }
+    }
+
+    private void updateExtractionDirectoryLabel(){
+        extractionPathField.setText(extractionDirectory.getAbsolutePath());
+    }
+
+
+    private DirectoryChooser prepareDirectoryChooser(){
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle("Select directory to extract to");
+        // possibly add recursive parent look up there for non-existing extractionDirectory
+        Logger.log("current extraction directory : "+extractionDirectory.getAbsolutePath());
+        Logger.log(
+                extractionDirectory.exists() ? "directory exists" : "directory doesn't exist"
+        );
+        boolean isValidExtractionDirSet = extractionDirectory != null && extractionDirectory.exists();
+        if(!isValidExtractionDirSet && selectedArchive == null) {
+            return directoryChooser;
+        }
+        if(!isValidExtractionDirSet){
+            directoryChooser.setInitialDirectory(selectedArchive.getParentFile());
+            return directoryChooser;
+        }
+        directoryChooser.setInitialDirectory(extractionDirectory);
+        return directoryChooser;
     }
 }
 
