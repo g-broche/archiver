@@ -1,5 +1,7 @@
 package com.gbroche.archiver.controllers;
 
+import com.gbroche.archiver.enums.ConflictStrategy;
+import com.gbroche.archiver.services.ExtractionService;
 import com.gbroche.archiver.utils.FileUtils;
 import com.gbroche.archiver.utils.Logger;
 import javafx.fxml.FXML;
@@ -11,6 +13,7 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.Map;
 
 public class LandingViewController {
     @FXML
@@ -27,6 +30,10 @@ public class LandingViewController {
     private TextField extractionPathField;
     @FXML
     private TextField archivePasswordField;
+    @FXML
+    private ComboBox<ConflictStrategy> conflictStrategyComboBox;
+    @FXML
+    private TextArea logArea;
 
     private Stage stage;
     private boolean mustIncludeExtractionSubDir;
@@ -38,6 +45,8 @@ public class LandingViewController {
         extractButton.setDisable(true);
         addSubDirCheckbox.setSelected(true);
         mustIncludeExtractionSubDir = true;
+        conflictStrategyComboBox.getItems().addAll(ConflictStrategy.values());
+        conflictStrategyComboBox.setValue(ConflictStrategy.SKIP);
 
         //maybe uncheck sub dir checkbox there to keep things sync ?
         extractionPathField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -47,6 +56,10 @@ public class LandingViewController {
             } catch (InvalidPathException e) {
                 new Alert(Alert.AlertType.INFORMATION, "invalid character entered").showAndWait();
             }
+        });
+
+        logArea.textProperty().addListener((obs, oldText, newText) -> {
+            logArea.setScrollTop(Double.MAX_VALUE);
         });
     }
 
@@ -104,7 +117,23 @@ public class LandingViewController {
 
     @FXML
     private void extractArchive(){
-        new Alert(Alert.AlertType.INFORMATION, "extraction triggered").showAndWait();
+        extractButton.setDisable(true); // Prevent double-clicking during extraction
+
+        ExtractionService.extractArchive(
+                selectedArchive,
+                extractionDirectory,
+                archivePasswordField.getText(),
+                conflictStrategyComboBox.getValue(),
+                message -> logArea.appendText(message + "\n"),
+                success -> {
+                    extractButton.setDisable(false);
+                    if (success) {
+                        logArea.appendText("Extraction complete.\n");
+                    } else {
+                        logArea.appendText("Extraction failed.\n");
+                    }
+                }
+        );
     }
 
     private void addExtractionSubDir(){
