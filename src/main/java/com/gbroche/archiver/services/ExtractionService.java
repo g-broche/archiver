@@ -93,6 +93,10 @@ public class ExtractionService {
             return null;
         }
 
+        /*  TODO: Add switch as unrar must be treated separately from zip and 7z. Conflict strategy will also need to
+            be adjusted as unrar CLI support different flags and doesn't handle auto rename as a strategy.
+        */
+
         String archivePath = archive.getAbsolutePath();
         String destPath = destination.getAbsolutePath();
         boolean hasPassword = password != null && !password.isEmpty();
