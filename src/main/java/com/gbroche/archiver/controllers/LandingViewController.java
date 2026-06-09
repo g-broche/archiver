@@ -1,6 +1,7 @@
 package com.gbroche.archiver.controllers;
 
 import com.gbroche.archiver.enums.ConflictStrategy;
+import com.gbroche.archiver.enums.Extension;
 import com.gbroche.archiver.services.ExtractionService;
 import com.gbroche.archiver.utils.FileUtils;
 import com.gbroche.archiver.utils.Logger;
@@ -23,6 +24,8 @@ public class LandingViewController {
     @FXML
     private Button extractButton;
     @FXML
+    private Button cancelButton;
+    @FXML
     private CheckBox addSubDirCheckbox;
     @FXML
     private Label selectedArchivePathLabel;
@@ -39,14 +42,14 @@ public class LandingViewController {
     private boolean mustIncludeExtractionSubDir;
     private File selectedArchive;
     private File extractionDirectory;
+    private Process currentExtractionProcess;
 
     @FXML
     public void initialize() {
         extractButton.setDisable(true);
         addSubDirCheckbox.setSelected(true);
         mustIncludeExtractionSubDir = true;
-        conflictStrategyComboBox.getItems().addAll(ConflictStrategy.values());
-        conflictStrategyComboBox.setValue(ConflictStrategy.SKIP);
+        fillConflictStrategyBox();
 
         //maybe uncheck sub dir checkbox there to keep things sync ?
         extractionPathField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -85,6 +88,7 @@ public class LandingViewController {
                 ? new File(selectedArchive.getParentFile(), FileUtils.getFileNameWithoutExtension(selectedArchive))
                 : selectedArchive.getParentFile();
             updateExtractionDirectoryLabel();
+            fillConflictStrategyBox();
             extractButton.setDisable(false);
             return;
         }
@@ -116,9 +120,9 @@ public class LandingViewController {
     }
 
     @FXML
-    private void extractArchive(){
-        extractButton.setDisable(true); // Prevent double-clicking during extraction
-
+    private void extractArchive() {
+        extractButton.setDisable(true);
+        cancelButton.setDisable(false);  // added
         ExtractionService.extractArchive(
                 selectedArchive,
                 extractionDirectory,
@@ -127,13 +131,27 @@ public class LandingViewController {
                 message -> logArea.appendText(message + "\n"),
                 success -> {
                     extractButton.setDisable(false);
+                    cancelButton.setDisable(true);  // added
+                    currentExtractionProcess = null;  // added
                     if (success) {
                         logArea.appendText("Extraction complete.\n");
                     } else {
                         logArea.appendText("Extraction failed.\n");
                     }
-                }
+                },
+                process -> currentExtractionProcess = process  // added
         );
+    }
+
+    @FXML
+    private void cancelTask() {
+        if (currentExtractionProcess != null && currentExtractionProcess.isAlive()) {
+            currentExtractionProcess.destroyForcibly();
+            logArea.appendText("Extraction cancelled.\n");
+            extractButton.setDisable(false);
+            cancelButton.setDisable(true);
+            currentExtractionProcess = null;
+        }
     }
 
     private void addExtractionSubDir(){
@@ -198,6 +216,18 @@ public class LandingViewController {
         }
         directoryChooser.setInitialDirectory(extractionDirectory);
         return directoryChooser;
+    }
+
+    private void fillConflictStrategyBox(){
+        Extension extension = FileUtils.getExtensionEnumFromFile(selectedArchive);
+        if (extension == null) extension = Extension.RAR; // default to rar if invalid enum as it is the less restrictive
+        conflictStrategyComboBox.getItems().clear();
+        conflictStrategyComboBox.getItems().addAll(extension.availableConflictStrategies);
+        conflictStrategyComboBox.setValue(
+                extension.availableConflictStrategies.contains(ConflictStrategy.SKIP)
+                        ? ConflictStrategy.SKIP
+                        : extension.availableConflictStrategies.getFirst()
+        );
     }
 }
 

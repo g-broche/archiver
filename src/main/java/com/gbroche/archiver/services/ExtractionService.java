@@ -2,6 +2,7 @@ package com.gbroche.archiver.services;
 
 import com.gbroche.archiver.classes.Command;
 import com.gbroche.archiver.enums.ConflictStrategy;
+import com.gbroche.archiver.enums.Extension;
 import com.gbroche.archiver.utils.FileUtils;
 import javafx.application.Platform;
 
@@ -13,26 +14,26 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class ExtractionService {
-    private static final List<String> allowedExtensions = List.of("zip", "7z", "rar");
     public static void extractArchive(
             File archive,
             File destination,
             String password,
             ConflictStrategy conflictStrategy,
             Consumer<String> onOutput,    // called for each line of CLI output
-            Consumer<Boolean> onComplete  // called with true=success, false=failure
+            Consumer<Boolean> onComplete,  // called with true=success, false=failure
+            Consumer<Process> onProcessStarted  // expose process to allow cancellation
     ) {
-        String extension = FileUtils.getFileExtension(archive);
-        Command command = buildCommand(extension, archive, destination, password, conflictStrategy);
-
-        if (command == null) {
-            onOutput.accept("Unsupported archive format: " + extension);
-            onComplete.accept(false);
-            return;
-        }
         // Run on a background thread to avoid freezing the UI
         Thread thread = new Thread(() -> {
             try {
+                Extension extension = FileUtils.getExtensionEnumFromFile(archive);
+                Command command = buildCommand(extension, archive, destination, password, conflictStrategy);
+
+                if (command == null) {
+                    onOutput.accept("Unsupported archive format: " + extension);
+                    onComplete.accept(false);
+                    return;
+                }
                 boolean createdDestination = false;
                 if (!destination.exists()) {
                     boolean created = destination.mkdirs();
@@ -48,6 +49,19 @@ public class ExtractionService {
                 pb.redirectErrorStream(true);
                 pb.directory(destination);
                 Process process = pb.start();
+
+                // Expose process to controller for cancel button
+                final Process finalProcess = process;
+                Platform.runLater(() -> onProcessStarted.accept(finalProcess));
+
+                // Kill process if app closes while it's running
+                final Process shutdownProcess = process;
+                Thread shutdownHook = new Thread(() -> {
+                    if (shutdownProcess.isAlive()) {
+                        shutdownProcess.destroyForcibly();
+                    }
+                });
+                Runtime.getRuntime().addShutdownHook(shutdownHook);
 
                 try (BufferedReader reader = new BufferedReader(
                         new InputStreamReader(process.getInputStream()))) {
@@ -70,7 +84,7 @@ public class ExtractionService {
                     Platform.runLater(() -> onComplete.accept(false));
                 }
 
-            } catch (IOException | InterruptedException e) {
+            } catch (Exception e) {
                 Platform.runLater(() -> {
                     onOutput.accept("Error: " + e.getMessage());
                     onComplete.accept(false);
@@ -83,28 +97,50 @@ public class ExtractionService {
     }
 
     private static Command buildCommand(
-            String extension,
+            Extension extension,
             File archive,
             File destination,
             String password,
             ConflictStrategy conflictStrategy
-    ) {
-        if(!allowedExtensions.contains(extension)){
-            return null;
+    ) throws Exception {
+        if(extension == null){
+            throw new Exception("Invalid file format received ("+FileUtils.getFileExtension(archive)+")");
         }
-
-        /*  TODO: Add switch as unrar must be treated separately from zip and 7z. Conflict strategy will also need to
-            be adjusted as unrar CLI support different flags and doesn't handle auto rename as a strategy.
-        */
+        if(archive == null){
+            throw new Exception("No archive file provided for extraction");
+        }
+        if(destination == null){
+            throw new Exception("Directory for extraction is null");
+        }
 
         String archivePath = archive.getAbsolutePath();
         String destPath = destination.getAbsolutePath();
         boolean hasPassword = password != null && !password.isEmpty();
-        Command.Builder cmd = new Command.Builder("7z").flag("x");
-        cmd.flag(conflictStrategy.flag);
-        if (hasPassword) cmd.flagConcat("-p", password);
-        cmd.argument(archivePath);
-        cmd.flagConcat("-o", destPath);
-        return cmd.build();
+        return switch (extension) {
+            case Extension.RAR -> {
+                Command.Builder cmd = new Command.Builder("unrar").flag("x");
+                if(conflictStrategy.flagUnrar == null){
+                    throw new Exception("Invalid conflict strategy resolution picked for .rar files");
+                }
+                cmd.flag(conflictStrategy.flagUnrar);
+                if (hasPassword) {
+                    cmd.flagConcat("-p", password);
+                } else {
+//                    cmd.flag("-p-"); // explicitly no password, fail instead of prompting in the void
+                }
+                cmd.argument(archivePath);
+                cmd.argument(destPath + "/");
+                yield cmd.build();
+            }
+            case Extension.ZIP, Extension.SEVEN_ZIP -> {
+                Command.Builder cmd = new Command.Builder("7z").flag("x");
+                cmd.flag(conflictStrategy.flagSevenZip);
+                if (hasPassword) cmd.flagConcat("-p", password);
+                cmd.argument(archivePath);
+                cmd.flagConcat("-o", destPath);
+                yield cmd.build();
+            }
+            default -> null;
+        };
     }
 }

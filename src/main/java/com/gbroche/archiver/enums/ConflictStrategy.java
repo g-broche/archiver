@@ -1,16 +1,19 @@
 package com.gbroche.archiver.enums;
 
 public enum ConflictStrategy {
-    OVERWRITE("Overwrite all", "-aoa"),
-    SKIP("Skip existing", "-aos"),
-    RENAME_EXTRACTED("Auto rename extracted", "-aou");
+    SKIP("Skip existing", "-aos", "-o-"),
+    OVERWRITE("Overwrite all", "-aoa", "-o+"),
+    RENAME_EXTRACTED("Auto rename extracted", "-aou", null), // fallback to skip for rar
+    RENAME_EXISTING("Auto rename existing", "-aot", null);  // fallback to skip for rar
 
     public final String label;
-    public final String flag;
+    public final String flagSevenZip;
+    public final String flagUnrar;
 
-    ConflictStrategy(String label, String flag) {
+    ConflictStrategy(String label, String flagSevenZip, String flagUnrar) {
         this.label = label;
-        this.flag = flag;
+        this.flagSevenZip = flagSevenZip;
+        this.flagUnrar = flagUnrar;
     }
 
     @Override

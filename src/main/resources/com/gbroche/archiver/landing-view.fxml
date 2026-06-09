@@ -12,7 +12,7 @@
 
 <!--use javafx version 21.0.6 if scene builder use higher version when generating FXML-->
 
-<AnchorPane prefHeight="600.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/21.0.6" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.gbroche.archiver.controllers.LandingViewController">
+<AnchorPane prefHeight="600.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/21.0.6 " xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.gbroche.archiver.controllers.LandingViewController">
     <Pane prefHeight="210.0" prefWidth="1000.0">
         <Pane layoutX="25.0" layoutY="25.0" maxWidth="950.0" minWidth="950.0" prefHeight="40.0" prefWidth="950.0">
             <Button fx:id="archivePicker" layoutY="7.0" mnemonicParsing="false" onAction="#selectArchive" prefWidth="150.0" text="Select source archive" />
@@ -21,7 +21,7 @@
         <Pane layoutX="25.0" layoutY="65.0" maxWidth="950.0" minWidth="950.0" prefHeight="40.0" prefWidth="950.0">
             <Button fx:id="extractDestinationPicker" layoutY="7.0" mnemonicParsing="false" onAction="#selectDestinationOfExtraction" prefHeight="26.0" prefWidth="150.0" text="Select destination" />
             <TextField fx:id="extractionPathField" layoutX="175.0" layoutY="7.0" maxHeight="26.0" maxWidth="500.0" minWidth="500.0" prefHeight="26.0" prefWidth="500.0" />
-         <CheckBox fx:id="addSubDirCheckbox" layoutX="700.0" layoutY="11.0" mnemonicParsing="false" onAction="#toggleExtractionSubDir" text="Add sub directory" />
+         <CheckBox fx:id="addSubDirCheckbox" layoutX="699.0" layoutY="11.0" mnemonicParsing="false" onAction="#toggleExtractionSubDir" text="Add sub directory" />
         </Pane>
         <Pane layoutX="25.0" layoutY="105.0" maxWidth="950.0" minWidth="950.0" prefHeight="40.0" prefWidth="950.0">
             <Label layoutY="8.0" maxWidth="750.0" minWidth="164.0" prefHeight="25.0" prefWidth="164.0" text="Password :">
@@ -30,17 +30,18 @@
                 </padding>
             </Label>
             <TextField fx:id="archivePasswordField" layoutX="175.0" layoutY="7.0" prefHeight="25.0" prefWidth="250.0" />
-         <ComboBox fx:id="conflictStrategyComboBox" layoutX="700.0" layoutY="7.0" prefHeight="26.0" prefWidth="240.0" />
+         <ComboBox fx:id="conflictStrategyComboBox" layoutX="696.0" layoutY="7.0" prefHeight="26.0" prefWidth="240.0" />
          <Label layoutX="566.0" layoutY="11.0" prefHeight="18.0" prefWidth="109.0" text="Conflict strategy :" textAlignment="RIGHT" />
         </Pane>
         <Pane layoutX="25.0" layoutY="165.0" maxWidth="950.0" minWidth="950.0" prefHeight="40.0" prefWidth="950.0">
             <Button fx:id="extractButton" layoutX="350.0" layoutY="7.0" mnemonicParsing="false" onAction="#extractArchive" prefHeight="26.0" prefWidth="250.0" text="Extract" />
+         <Button fx:id="cancelButton" layoutX="836.0" layoutY="7.0" mnemonicParsing="false" onAction="#cancelTask" prefHeight="26.0" prefWidth="100.0" text="Cancel" />
         </Pane>
       <padding>
          <Insets bottom="25.0" left="25.0" right="25.0" top="25.0" />
       </padding>
     </Pane>
    <Pane layoutY="210.0" prefHeight="390.0" prefWidth="1000.0">
-         <TextArea fx:id="logArea" editable="false" layoutX="20.0" layoutY="15.0" prefHeight="360.0" prefWidth="960.0" />
+         <TextArea fx:id="logArea" editable="false" wrapText="true" layoutX="20.0" layoutY="15.0" prefHeight="360.0" prefWidth="960.0" />
    </Pane>
 </AnchorPane>
