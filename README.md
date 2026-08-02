@@ -1,5 +1,5 @@
 # Archiver
-Projected intended to make a GUI to streamline extracting of archive files, especially password  protected ones on Linux.
+Project intended to make a GUI to streamline extracting of archive files, especially password  protected ones on Linux.
 
 This is also an excuse to have a first experience in having a Linux based environment for both dev process and for the release. Doubles as a refresher for JavaFX (and possibly FXML) for handling the views.
 
